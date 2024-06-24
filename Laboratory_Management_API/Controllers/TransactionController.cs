@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Laboratory_Management_API.DataConnection;
-using Laboratory_Management_API.Models; // Replace with your actual namespace
+using Laboratory_Management_API.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,7 +28,7 @@ namespace Laboratory_Management_API.Controllers
                 {
                     Transaction_Id = transaction.Transaction_Id,
                     Item_Id = transaction.Item_Id,
-                    User_Id = transaction.User_Id, // Include User_Id
+                    User_Id = transaction.User_Id,
                     Transaction_Type = transaction.Transaction_Type,
                     Quantity = transaction.Quantity,
                     Transaction_Date = transaction.Transaction_Date,
@@ -54,7 +54,7 @@ namespace Laboratory_Management_API.Controllers
             {
                 Transaction_Id = transaction.Transaction_Id,
                 Item_Id = transaction.Item_Id,
-                User_Id = transaction.User_Id, // Include User_Id
+                User_Id = transaction.User_Id,
                 Transaction_Type = transaction.Transaction_Type,
                 Quantity = transaction.Quantity,
                 Transaction_Date = transaction.Transaction_Date,
@@ -75,20 +75,44 @@ namespace Laboratory_Management_API.Controllers
                 return BadRequest("User with provided User_Id does not exist.");
             }
 
+            // Check if the item exists in the inventory
+            var inventory = await _context.Inventory.FirstOrDefaultAsync(i => i.Item_Id == transactionDto.Item_Id);
+            if (inventory == null)
+            {
+                return BadRequest("Item with provided Item_Id does not exist in inventory.");
+            }
+
+            // Create the transaction
             var transaction = new Transaction
             {
                 Item_Id = transactionDto.Item_Id,
-                User_Id = transactionDto.User_Id, // Assign User_Id
+                User_Id = transactionDto.User_Id,
                 Transaction_Type = transactionDto.Transaction_Type,
                 Quantity = transactionDto.Quantity,
                 Transaction_Date = transactionDto.Transaction_Date,
                 Notes = transactionDto.Notes
             };
 
+            // Update the inventory quantity
+            if (transactionDto.Transaction_Type == "IN")
+            {
+                inventory.Quantity += transactionDto.Quantity;
+            }
+            else if (transactionDto.Transaction_Type == "OUT")
+            {
+                if (inventory.Quantity < transactionDto.Quantity)
+                {
+                    return BadRequest("Not enough inventory for this transaction.");
+                }
+                inventory.Quantity -= transactionDto.Quantity;
+            }
+            inventory.Last_Updated = DateTime.Now;
+
             _context.Transactions.Add(transaction);
+            _context.Entry(inventory).State = EntityState.Modified;
             await _context.SaveChangesAsync();
 
-            transactionDto.Transaction_Id = transaction.Transaction_Id; // Update the DTO with the generated ID
+            transactionDto.Transaction_Id = transaction.Transaction_Id;
 
             return CreatedAtAction(nameof(GetTransaction), new { id = transaction.Transaction_Id }, transactionDto);
         }
@@ -113,7 +137,7 @@ namespace Laboratory_Management_API.Controllers
             {
                 Transaction_Id = transactionDto.Transaction_Id,
                 Item_Id = transactionDto.Item_Id,
-                User_Id = transactionDto.User_Id, // Assign User_Id
+                User_Id = transactionDto.User_Id,
                 Transaction_Type = transactionDto.Transaction_Type,
                 Quantity = transactionDto.Quantity,
                 Transaction_Date = transactionDto.Transaction_Date,

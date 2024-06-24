@@ -20,11 +20,13 @@ namespace Laboratory_Management_API.DataConnection
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Login>().HasNoKey(); // Assuming Login entity exists in your models
+            modelBuilder.Entity<UserDto>().HasNoKey();
 
             // You can add further configurations here if needed
         }
 
         public DbSet<User> Users { get; set; }
+        public DbSet<UserDto> UserDto { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Item> Items { get; set; }
         public DbSet<Inventory> Inventory { get; set; }
