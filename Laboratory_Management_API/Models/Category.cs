@@ -18,6 +18,6 @@ namespace Laboratory_Management_API.Models
         public string Description { get; set; }
 
         [Column("created_at")]
-        public DateTime Created_At { get; set; }
+        public DateTime Created_At { get; set; } = DateTime.UtcNow;
     }
 }
